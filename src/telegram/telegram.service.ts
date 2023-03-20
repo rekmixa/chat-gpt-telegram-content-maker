@@ -1,15 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import * as TelegramBot from 'node-telegram-bot-api'
 import { ChatCompletionRequestMessage } from 'openai/dist/api'
+import { PostRepository } from 'src/db/post.repository'
 import { OpenAiService } from './open-ai.service'
 
 @Injectable()
-export class TelegramService {
-  private readonly logger: Logger = new Logger('TelegramService')
+export class TelegramService implements OnModuleInit {
+  private readonly logger: Logger = new Logger(TelegramService.name)
   private readonly bot: TelegramBot
   private loading: boolean = false
 
-  constructor(private readonly openaiService: OpenAiService) {
+  constructor(
+    @Inject(OpenAiService) private readonly openaiService: OpenAiService,
+    @Inject(PostRepository) private readonly postRepository: PostRepository
+  ) {
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true })
   }
 

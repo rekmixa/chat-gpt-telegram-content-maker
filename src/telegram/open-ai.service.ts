@@ -4,7 +4,7 @@ import { ChatCompletionRequestMessage } from 'openai/dist/api'
 
 @Injectable()
 export class OpenAiService {
-  private readonly logger: Logger = new Logger('OpenAiService')
+  private readonly logger: Logger = new Logger(OpenAiService.name)
   private readonly openai: OpenAIApi
 
   constructor() {

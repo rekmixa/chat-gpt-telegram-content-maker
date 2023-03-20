@@ -19,3 +19,30 @@ services:
       - ./docker/node/bootstrap.sh:/usr/local/bin/bootstrap.sh
     command: sh -c 'yarn && yarn dev'
     restart: ${RESTART}
+
+  db:
+    image: postgres:12.2-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: ${RESTART}
+
+  adminer:
+    image: adminer
+    labels:
+      traefik.enable: 'true'
+      traefik.frontend.rule: 'Host: adminer.${DOCKER_DOMAIN}'
+    networks:
+      - default
+      - web
+    restart: ${RESTART}
+
+volumes:
+  db_data:
+
+networks:
+  web:
+    external: true

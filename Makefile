@@ -1,4 +1,4 @@
-all: git-pull up logs
+all: git-pull up migrate logs
 
 dev: up logs
 
@@ -35,7 +35,10 @@ docker-compose-override:
 mkdir-data:
 	@test -d data || mkdir data
 
-install: cp-env mkdir-data docker-compose-override up
+install: cp-env mkdir-data docker-compose-override up migrate
+
+migrate:
+	@docker-compose exec node yarn knex migrate:up
 
 rm-git:
 	@rm -rf .git
