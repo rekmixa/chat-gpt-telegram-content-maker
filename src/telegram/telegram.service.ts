@@ -7,13 +7,14 @@ import { OpenAiService } from './open-ai.service'
 export class TelegramService {
   private readonly logger: Logger = new Logger('TelegramService')
   private readonly bot: TelegramBot
+  private loading: boolean = false
 
   constructor(private readonly openaiService: OpenAiService) {
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true })
   }
 
   async onModuleInit(): Promise<void> {
-    this.bot.setMyCommands([
+    await this.bot.setMyCommands([
       {
         command: 'start',
         description: 'Start',
@@ -44,16 +45,29 @@ export class TelegramService {
     })
 
     this.bot.on('message', async message => {
+      if (this.loading === true) {
+        try {
+          await this.bot.sendMessage(message.chat.id, 'Wait...')
+        } catch (error) {
+          this.logger.error(error)
+        }
+
+        return
+      }
+
       try {
+        this.loading = true
+        await this.setTyping(message.chat.id)
+
         if (message.text === '/start') {
-          this.bot.sendMessage(message.chat.id, `Your Chat ID: ${message.chat.id}`)
+          await this.bot.sendMessage(message.chat.id, `Your Chat ID: ${message.chat.id}`)
         }
 
         if (message.text === '/ping') {
-          this.bot.sendMessage(message.chat.id, 'pong')
+          await this.bot.sendMessage(message.chat.id, 'pong')
         }
 
-        if (message.chat.id !== process.env.TELEGRAM_ADMIN_CHAT_ID) {
+        if (String(message.chat.id) !== String(process.env.TELEGRAM_ADMIN_CHAT_ID)) {
           this.logger.warn('Access denied')
 
           return
@@ -77,8 +91,27 @@ export class TelegramService {
         }
       } catch (error) {
         this.logger.error(error)
+      } finally {
+        this.loading = false
       }
     })
+  }
+
+  private async setTyping(chatId: string): Promise<void> {
+    this.logger.log(`Typing started for: ${chatId}`)
+    await this.bot.sendChatAction(chatId, 'typing')
+
+    const interval = setInterval(async () => {
+      if (this.loading === false) {
+        this.logger.log(`Typing finished for: ${chatId}`)
+        clearInterval(interval)
+
+        return
+      }
+
+      this.logger.log(`Typing for: ${chatId}`)
+      await this.bot.sendChatAction(chatId, 'typing')
+    }, 1000)
   }
 
   private async sendToModeration(content: string): Promise<void> {
