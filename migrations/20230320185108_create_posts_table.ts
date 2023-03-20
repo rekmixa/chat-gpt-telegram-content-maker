@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('posts', table => {
     table.increments()
     table.text('content')
-    table.boolean('is_published').defaultTo(false)
+    table.boolean('status').defaultTo('moderating')
     table.timestamps(false, true)
   })
 }

@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common'
 import { InjectKnex, Knex } from 'nestjs-knex'
 
+export enum PostStatus {
+  Moderating = 'moderating',
+  Skipped = 'skipped',
+  Scheduled = 'scheduled',
+  Published = 'published',
+}
+
 export interface Post {
   readonly id?: number
   content: string
-  is_published?: boolean
+  status?: PostStatus
   readonly created_at?: Date
   readonly updated_at?: Date
 }
@@ -31,11 +38,20 @@ export class PostRepository {
     return null
   }
 
-  async findOldestNotPublished(): Promise<Post | null> {
+  async getById(id: number): Promise<Post> {
+    const post = await this.findById(id)
+    if (post === null) {
+      throw new Error(`Cannot get post ${id}`)
+    }
+
+    return post
+  }
+
+  async findOldestScheduled(): Promise<Post | null> {
     const post = await this.knex
       .from<Post>(this.tableName)
       .select('*')
-      .where('is_published', false)
+      .where('status', PostStatus.Scheduled)
       .orderBy('id', 'asc')
       .first()
 

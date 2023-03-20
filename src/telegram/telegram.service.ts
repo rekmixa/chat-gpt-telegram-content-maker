@@ -1,8 +1,11 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import * as TelegramBot from 'node-telegram-bot-api'
-import { ChatCompletionRequestMessage } from 'openai/dist/api'
 import { PostRepository } from 'src/db/post.repository'
-import { OpenAiService } from './open-ai.service'
+import { GeneratePostService } from './generate-post.service'
+import { PublishInChannelService } from './publish-in-channel.service'
+import { SchedulePostService } from './schedule-post.service'
+import { SendToModerationService } from './send-to-moderation.service'
+import { SkipPostService } from './skip-post.service'
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -11,8 +14,12 @@ export class TelegramService implements OnModuleInit {
   private loading: boolean = false
 
   constructor(
-    @Inject(OpenAiService) private readonly openaiService: OpenAiService,
-    @Inject(PostRepository) private readonly postRepository: PostRepository
+    @Inject(GeneratePostService) private readonly generatePostService: GeneratePostService,
+    @Inject(PublishInChannelService) private readonly publishInChannelService: PublishInChannelService,
+    @Inject(SendToModerationService) private readonly sendToModerationService: SendToModerationService,
+    @Inject(SchedulePostService) private readonly schedulePostService: SchedulePostService,
+    @Inject(SkipPostService) private readonly skipPostService: SkipPostService,
+    @Inject(PostRepository) private readonly postRepository: PostRepository,
   ) {
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true })
   }
@@ -35,8 +42,18 @@ export class TelegramService implements OnModuleInit {
 
     this.bot.on('callback_query', async data => {
       try {
-        if (data.data === 'publish') {
-          await this.publishInChannel(data.message.text)
+        const post = await this.postRepository.getById(data.data?.id)
+
+        if (data.data?.event === 'publish') {
+          await this.publishInChannelService.publish(post)
+        }
+
+        if (data.data?.event === 'schedule') {
+          await this.schedulePostService.schedule(post)
+        }
+
+        if (data.data?.event === 'skip') {
+          await this.skipPostService.skip(post)
         }
 
         await this.bot.editMessageReplyMarkup({}, {
@@ -80,18 +97,8 @@ export class TelegramService implements OnModuleInit {
         if (message.text === '/generate_post') {
           this.logger.log('Generating a post...')
 
-          const requestMessages: ChatCompletionRequestMessage[] = [
-            {
-              role: 'system',
-              content: 'Придумай рандомный анекдот',
-            },
-          ]
-
-          const responseMessages = await this.openaiService.sendRequest(requestMessages)
-
-          for (const message of responseMessages) {
-            await this.sendToModeration(message.content)
-          }
+          const post = await this.generatePostService.generatePost()
+          await this.sendToModerationService.send(post)
         }
       } catch (error) {
         this.logger.error(error)
@@ -116,32 +123,5 @@ export class TelegramService implements OnModuleInit {
       this.logger.log(`Typing for: ${chatId}`)
       await this.bot.sendChatAction(chatId, 'typing')
     }, 1000)
-  }
-
-  private async sendToModeration(content: string): Promise<void> {
-    this.logger.log('Sending a post to moderation...')
-
-    await this.bot.sendMessage(process.env.TELEGRAM_ADMIN_CHAT_ID, content, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: 'Publish',
-              callback_data: 'publish',
-            },
-            {
-              text: 'Skip',
-              callback_data: 'skip',
-            },
-          ],
-        ],
-      }
-    })
-  }
-
-  private async publishInChannel(content: string): Promise<void> {
-    this.logger.log('Publishing a post...')
-
-    await this.bot.sendMessage(process.env.TELEGRAM_CHANNEL_CHAT_ID, content)
   }
 }
