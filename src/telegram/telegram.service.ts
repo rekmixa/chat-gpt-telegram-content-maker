@@ -53,6 +53,12 @@ export class TelegramService {
           this.bot.sendMessage(message.chat.id, 'pong')
         }
 
+        if (message.chat.id !== process.env.TELEGRAM_ADMIN_CHAT_ID) {
+          this.logger.warn('Access denied')
+
+          return
+        }
+
         if (message.text === '/generate_post') {
           this.logger.log('Generating a post...')
 
