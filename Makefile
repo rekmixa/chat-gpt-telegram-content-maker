@@ -35,7 +35,7 @@ docker-compose-override:
 mkdir-data:
 	@test -d data || mkdir data
 
-install: cp-env mkdir-data docker-compose-override up migrate
+install: cp-env mkdir-data docker-compose-override up
 
 migrate:
 	@docker-compose exec node yarn knex migrate:up
