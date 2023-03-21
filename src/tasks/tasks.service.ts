@@ -4,6 +4,8 @@ import { Post } from 'src/db/post.repository'
 import { GeneratePostService } from 'src/telegram/generate-post.service'
 import { PublishInChannelService } from 'src/telegram/publish-in-channel.service'
 import { SendToModerationService } from 'src/telegram/send-to-moderation.service'
+import { sendMessageToAdmin } from 'src/telegram/telegram.module'
+import { PostRepository } from './../db/post.repository'
 import { delay } from './../helpers/index'
 
 @Injectable()
@@ -11,13 +13,14 @@ export class TasksService {
   private readonly logger = new Logger(TasksService.name)
 
   constructor(
+    @Inject(PostRepository) private readonly postRepository: PostRepository,
     @Inject(GeneratePostService) private readonly generatePostService: GeneratePostService,
     @Inject(PublishInChannelService) private readonly publishInChannelService: PublishInChannelService,
     @Inject(SendToModerationService) private readonly sendToModerationService: SendToModerationService,
   ) { }
 
-  @Cron(CronExpression.EVERY_DAY_AT_5AM)
-  async handleCron() {
+  @Cron(CronExpression.EVERY_DAY_AT_7PM)
+  async generatePosts(): Promise<void> {
     this.logger.debug('Generating posts for schedule')
     const posts: Post[] = []
 
@@ -37,6 +40,32 @@ export class TasksService {
       } catch (error) {
         this.logger.error(`Sending post ${post.id} failed`, error)
       }
+    }
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  @Cron(CronExpression.EVERY_DAY_AT_5AM)
+  @Cron(CronExpression.EVERY_DAY_AT_6AM)
+  @Cron(CronExpression.EVERY_DAY_AT_7AM)
+  @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  @Cron(CronExpression.EVERY_DAY_AT_9AM)
+  @Cron(CronExpression.EVERY_DAY_AT_10AM)
+  @Cron(CronExpression.EVERY_DAY_AT_11AM)
+  @Cron(CronExpression.EVERY_DAY_AT_NOON)
+  @Cron(CronExpression.EVERY_DAY_AT_1PM)
+  async publishScheduledPosts(): Promise<void> {
+    this.logger.debug('Publishind scheduled post')
+
+    try {
+      const post = await this.postRepository.findOldestScheduled()
+      if (post === null) {
+        this.logger.warn('No post to publish')
+        await sendMessageToAdmin('No post to publish')
+      } else {
+        await this.publishInChannelService.publish(post)
+      }
+    } catch (error) {
+      this.logger.error('Error publishing post', error)
     }
   }
 }
