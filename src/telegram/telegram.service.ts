@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import * as TelegramBot from 'node-telegram-bot-api'
-import { PostRepository } from 'src/db/post.repository'
+import { PostRepository, PostStatus } from 'src/db/post.repository'
 import { GeneratePostService } from './generate-post.service'
 import { PublishInChannelService } from './publish-in-channel.service'
 import { SchedulePostService } from './schedule-post.service'
@@ -46,22 +46,45 @@ export class TelegramService implements OnModuleInit {
         const payload = JSON.parse(data.data)
         const post = await this.postRepository.getById(payload.id)
 
-        if (payload.event === 'publish') {
+        let successMessage: string
+        let replyMarkup = {
+          inline_keyboard: [
+            [
+              {
+                text: 'Moderate',
+                callback_data: JSON.stringify({
+                  event: 'moderate',
+                  id: post.id,
+                }),
+              },
+            ],
+          ]
+        }
+
+        if (payload.event === 'moderate') {
+          post.status = PostStatus.Moderating
+          await this.postRepository.persist(post)
+          replyMarkup = this.sendToModerationService.getReplyMarkup(post)
+        } else if (payload.event === 'publish') {
           await this.publishInChannelService.publish(post)
-        }
-
-        if (payload.event === 'schedule') {
+          replyMarkup = undefined
+          successMessage = 'published'
+        } else if (payload.event === 'schedule') {
           await this.schedulePostService.schedule(post)
-        }
-
-        if (payload.event === 'skip') {
+          successMessage = 'scheduled'
+        } else if (payload.event === 'skip') {
           await this.skipPostService.skip(post)
+          successMessage = 'skipped'
         }
 
-        await this.bot.editMessageReplyMarkup({}, {
+        await this.bot.editMessageReplyMarkup(replyMarkup, {
           chat_id: data.message.chat.id,
           message_id: data.message.message_id,
         })
+
+        if (successMessage !== undefined) {
+          await sendMessageToTelegram(data.from.id, successMessage)
+        }
       } catch (error) {
         this.logger.error('Callback query error', error)
       }

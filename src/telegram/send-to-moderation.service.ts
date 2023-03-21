@@ -17,6 +17,14 @@ export class SendToModerationService {
       await this.postRepository.persist(post)
     }
 
+    await sendMessageToAdmin(post.content, {
+      reply_markup: this.getReplyMarkup(post),
+    })
+
+    this.logger.log('Post was sent to moderation')
+  }
+
+  getReplyMarkup(post: Post): any {
     const callbackData = event => {
       return JSON.stringify({
         event,
@@ -24,27 +32,23 @@ export class SendToModerationService {
       })
     }
 
-    await sendMessageToAdmin(post.content, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: 'Publish',
-              callback_data: callbackData('publish'),
-            },
-            {
-              text: 'Schedule',
-              callback_data: callbackData('schedule'),
-            },
-            {
-              text: 'Skip',
-              callback_data: callbackData('skip'),
-            },
-          ],
+    return {
+      inline_keyboard: [
+        [
+          {
+            text: 'Publish',
+            callback_data: callbackData('publish'),
+          },
+          {
+            text: 'Schedule',
+            callback_data: callbackData('schedule'),
+          },
+          {
+            text: 'Skip',
+            callback_data: callbackData('skip'),
+          },
         ],
-      }
-    })
-
-    this.logger.log('Post was sent to moderation')
+      ],
+    }
   }
 }
