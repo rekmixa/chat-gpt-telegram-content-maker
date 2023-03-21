@@ -14,9 +14,9 @@ export class PublishInChannelService {
   }
 
   async publish(post: Post): Promise<void> {
-    this.logger.log('Publishing a post...')
     post.status = PostStatus.Published
     await this.postRepository.persist(post)
     await this.bot.sendMessage(process.env.TELEGRAM_CHANNEL_CHAT_ID, post.content)
+    this.logger.log('Post has been published')
   }
 }

@@ -12,7 +12,12 @@ export class SendToModerationService {
   }
 
   async send(post: Post): Promise<void> {
-    this.logger.log('Sending a post to moderation...')
+    const callbackData = event => {
+      return JSON.stringify({
+        event,
+        id: post.id,
+      })
+    }
 
     await this.bot.sendMessage(process.env.TELEGRAM_ADMIN_CHAT_ID, post.content, {
       reply_markup: {
@@ -20,28 +25,21 @@ export class SendToModerationService {
           [
             {
               text: 'Publish',
-              callback_data: {
-                event: 'publish',
-                id: post.id,
-              },
+              callback_data: callbackData('publish'),
             },
             {
               text: 'Schedule',
-              callback_data: {
-                event: 'schedule',
-                id: post.id,
-              },
+              callback_data: callbackData('schedule'),
             },
             {
               text: 'Skip',
-              callback_data: {
-                event: 'skip',
-                id: post.id,
-              },
+              callback_data: callbackData('skip'),
             },
           ],
         ],
       }
     })
+
+    this.logger.log('Post was sent to moderation')
   }
 }

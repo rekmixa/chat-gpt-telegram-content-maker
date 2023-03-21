@@ -10,8 +10,8 @@ export class SkipPostService {
   ) { }
 
   async skip(post: Post): Promise<void> {
-    this.logger.log('Scheduling a post...')
     post.status = PostStatus.Skipped
     await this.postRepository.persist(post)
+    this.logger.log('Post has been skipped')
   }
 }

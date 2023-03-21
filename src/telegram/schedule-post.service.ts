@@ -10,8 +10,8 @@ export class SchedulePostService {
   ) { }
 
   async schedule(post: Post): Promise<void> {
-    this.logger.log('Scheduling a post...')
     post.status = PostStatus.Scheduled
     await this.postRepository.persist(post)
+    this.logger.log('Post has been scheduled')
   }
 }

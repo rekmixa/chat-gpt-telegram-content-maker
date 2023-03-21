@@ -42,17 +42,18 @@ export class TelegramService implements OnModuleInit {
 
     this.bot.on('callback_query', async data => {
       try {
-        const post = await this.postRepository.getById(data.data?.id)
+        const payload = JSON.parse(data.data)
+        const post = await this.postRepository.getById(payload.id)
 
-        if (data.data?.event === 'publish') {
+        if (payload.event === 'publish') {
           await this.publishInChannelService.publish(post)
         }
 
-        if (data.data?.event === 'schedule') {
+        if (payload.event === 'schedule') {
           await this.schedulePostService.schedule(post)
         }
 
-        if (data.data?.event === 'skip') {
+        if (payload.event === 'skip') {
           await this.skipPostService.skip(post)
         }
 
@@ -61,7 +62,7 @@ export class TelegramService implements OnModuleInit {
           message_id: data.message.message_id,
         })
       } catch (error) {
-        this.logger.error(error)
+        this.logger.error('Callback query error', error)
       }
     })
 
@@ -70,7 +71,7 @@ export class TelegramService implements OnModuleInit {
         try {
           await this.bot.sendMessage(message.chat.id, 'Wait...')
         } catch (error) {
-          this.logger.error(error)
+          this.logger.error('Wait message error', error)
         }
 
         return
@@ -95,13 +96,11 @@ export class TelegramService implements OnModuleInit {
         }
 
         if (message.text === '/generate_post') {
-          this.logger.log('Generating a post...')
-
           const post = await this.generatePostService.generatePost()
           await this.sendToModerationService.send(post)
         }
       } catch (error) {
-        this.logger.error(error)
+        this.logger.error('Handling message error', error)
       } finally {
         this.loading = false
       }
@@ -114,7 +113,6 @@ export class TelegramService implements OnModuleInit {
 
     const interval = setInterval(async () => {
       if (this.loading === false) {
-        this.logger.log(`Typing finished for: ${chatId}`)
         clearInterval(interval)
 
         return
