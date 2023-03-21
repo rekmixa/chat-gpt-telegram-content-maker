@@ -1,17 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common'
-import * as TelegramBot from 'node-telegram-bot-api'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { Post } from 'src/db/post.repository'
+import { PostRepository, PostStatus } from './../db/post.repository'
+import { sendMessageToAdmin } from './telegram.module'
 
 @Injectable()
 export class SendToModerationService {
   private readonly logger: Logger = new Logger(SendToModerationService.name)
-  private readonly bot: TelegramBot
 
-  constructor() {
-    this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN)
-  }
+  constructor(
+    @Inject(PostRepository) private readonly postRepository: PostRepository
+  ) { }
 
   async send(post: Post): Promise<void> {
+    if (post.status !== PostStatus.Moderating) {
+      post.status = PostStatus.Moderating
+      await this.postRepository.persist(post)
+    }
+
     const callbackData = event => {
       return JSON.stringify({
         event,
@@ -19,7 +24,7 @@ export class SendToModerationService {
       })
     }
 
-    await this.bot.sendMessage(process.env.TELEGRAM_ADMIN_CHAT_ID, post.content, {
+    await sendMessageToAdmin(post.content, {
       reply_markup: {
         inline_keyboard: [
           [

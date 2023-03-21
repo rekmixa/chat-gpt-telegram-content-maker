@@ -6,6 +6,7 @@ import { PublishInChannelService } from './publish-in-channel.service'
 import { SchedulePostService } from './schedule-post.service'
 import { SendToModerationService } from './send-to-moderation.service'
 import { SkipPostService } from './skip-post.service'
+import { sendMessageToTelegram } from './telegram.module'
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -69,7 +70,7 @@ export class TelegramService implements OnModuleInit {
     this.bot.on('message', async message => {
       if (this.loading === true) {
         try {
-          await this.bot.sendMessage(message.chat.id, 'Wait...')
+          await sendMessageToTelegram(message.chat.id, 'Wait...')
         } catch (error) {
           this.logger.error('Wait message error', error)
         }
@@ -82,11 +83,11 @@ export class TelegramService implements OnModuleInit {
         await this.setTyping(message.chat.id)
 
         if (message.text === '/start') {
-          await this.bot.sendMessage(message.chat.id, `Your Chat ID: ${message.chat.id}`)
+          await sendMessageToTelegram(message.chat.id, `Your Chat ID: ${message.chat.id}`)
         }
 
         if (message.text === '/ping') {
-          await this.bot.sendMessage(message.chat.id, 'pong')
+          await sendMessageToTelegram(message.chat.id, 'pong')
         }
 
         if (String(message.chat.id) !== String(process.env.TELEGRAM_ADMIN_CHAT_ID)) {
