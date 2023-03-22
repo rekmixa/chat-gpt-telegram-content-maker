@@ -43,16 +43,7 @@ export class TasksService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_4AM)
-  @Cron(CronExpression.EVERY_DAY_AT_5AM)
-  @Cron(CronExpression.EVERY_DAY_AT_6AM)
-  @Cron(CronExpression.EVERY_DAY_AT_7AM)
-  @Cron(CronExpression.EVERY_DAY_AT_8AM)
-  @Cron(CronExpression.EVERY_DAY_AT_9AM)
-  @Cron(CronExpression.EVERY_DAY_AT_10AM)
-  @Cron(CronExpression.EVERY_DAY_AT_11AM)
-  @Cron(CronExpression.EVERY_DAY_AT_NOON)
-  @Cron(CronExpression.EVERY_DAY_AT_1PM)
+  @Cron('0 9-18 * * *')
   async publishScheduledPosts(): Promise<void> {
     this.logger.debug('Publishind scheduled post')
 
