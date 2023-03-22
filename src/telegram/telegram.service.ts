@@ -61,7 +61,10 @@ export class TelegramService implements OnModuleInit {
           ]
         }
 
-        if (payload.event === 'moderate') {
+        if (post.status === PostStatus.Published) {
+          replyMarkup = undefined
+          successMessage = 'post already published'
+        } else if (payload.event === 'moderate') {
           post.status = PostStatus.Moderating
           await this.postRepository.persist(post)
           replyMarkup = this.sendToModerationService.getReplyMarkup(post)

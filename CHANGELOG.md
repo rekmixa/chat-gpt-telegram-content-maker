@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ## [0.0.2] - 2023-03-23
+### Added
+- checking for post is published on handling callback query
 ### Changed
 - logger: add sending errors to telegram
 ### Fixed
