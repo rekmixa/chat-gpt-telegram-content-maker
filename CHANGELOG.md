@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.1.1] - 2023-03-24
+### Changed
+- crontab rule for generate posts task
+
 ## [0.1.0] - 2023-03-23
 ### Added
 - Prompt entity

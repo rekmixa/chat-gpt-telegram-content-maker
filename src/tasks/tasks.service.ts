@@ -21,7 +21,7 @@ export class TasksService {
     @Inject(SendToModerationService) private readonly sendToModerationService: SendToModerationService,
   ) { }
 
-  @Cron(CronExpression.EVERY_DAY_AT_7PM)
+  @Cron(CronExpression.EVERY_DAY_AT_10PM)
   async generatePosts(): Promise<void> {
     this.logger.debug('Generating posts for schedule')
     const hasAnyPrompts = await this.promptRepository.hasAnyActive()
