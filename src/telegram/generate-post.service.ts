@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { PromptRepository } from './../db/prompt.repository'
 import { ChatCompletionRequestMessage } from 'openai/dist/api'
 import { Post, PostRepository } from './../db/post.repository'
@@ -6,6 +6,8 @@ import { OpenAiService } from './open-ai.service'
 
 @Injectable()
 export class GeneratePostService {
+  private readonly logger: Logger = new Logger(GeneratePostService.name)
+
   constructor(
     @Inject(OpenAiService) private readonly openaiService: OpenAiService,
     @Inject(PostRepository) private readonly postRepository: PostRepository,
@@ -13,14 +15,17 @@ export class GeneratePostService {
   ) { }
 
   async generatePost(): Promise<Post> {
-    const prompts = await this.promptRepository.findAllActive()
-    if (prompts.length === 0) {
+    const prompt = await this.promptRepository.findRandom()
+    if (prompt === null) {
       throw new Error('You have not added any prompts. Add at least one')
     }
 
-    const requestMessages: ChatCompletionRequestMessage[] = prompts.map(prompt => ({
+    this.logger.log(`Generating post using prompt: ${prompt.text}`)
+
+    const promptTexts = this.promptRepository.splitTextToPrompts(prompt)
+    const requestMessages: ChatCompletionRequestMessage[] = promptTexts.map(content => ({
       role: 'system',
-      content: prompt.text,
+      content,
     }))
 
     const responseMessages = await this.openaiService.sendRequest(requestMessages)

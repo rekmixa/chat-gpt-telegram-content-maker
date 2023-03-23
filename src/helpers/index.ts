@@ -40,3 +40,11 @@ export function filePutContents(filename: string, content: string): void {
 export function convertTimeZone(date: Date | string, timeZone): Date {
   return new Date((typeof date === 'string' ? new Date(date) : date).toLocaleString("en-US", { timeZone }))
 }
+
+export function replaceAll(string: string, search: string, replace: string) {
+  const escapeRegExp = string => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+
+  return string.replace(new RegExp(escapeRegExp(search), 'g'), replace)
+}

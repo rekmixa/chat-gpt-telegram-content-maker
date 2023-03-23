@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectKnex, Knex } from 'nestjs-knex'
+import { replaceAll } from 'src/helpers'
 
 export enum PromptStatus {
   Active = 'active',
@@ -49,6 +50,7 @@ export class PromptRepository {
     const prompt = await this.knex
       .from<Prompt>(this.tableName)
       .select('*')
+      .where('status', PromptStatus.Active)
       .orderBy('random()')
       .first()
 
@@ -59,10 +61,17 @@ export class PromptRepository {
     return null
   }
 
+  splitTextToPrompts(prompt: Prompt): string[] {
+    return prompt.text
+      .split('//')
+      .map(promptText => promptText.trim())
+  }
+
   async findAllActive(): Promise<Prompt[]> {
     return this.knex
       .from<Prompt>(this.tableName)
       .select('*')
+      .where('status', PromptStatus.Active)
       .orderBy('id', 'asc')
   }
 
@@ -80,6 +89,8 @@ export class PromptRepository {
   }
 
   async persist(prompt: Prompt): Promise<Prompt> {
+    const text = replaceAll(replaceAll(prompt.text, '//', ' // '), '  ', ' ')
+
     let result: Prompt[]
     if (prompt.id !== undefined) {
       result = await this.knex
@@ -88,13 +99,17 @@ export class PromptRepository {
         .returning('*')
         .update({
           ...prompt,
+          text,
           updated_at: new Date()
         })
     } else {
       result = await this.knex
         .table<Prompt>(this.tableName)
         .returning('*')
-        .insert(prompt)
+        .insert({
+          ...prompt,
+          text,
+        })
     }
 
     if (result[0] === undefined) {

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2023-03-23
+### Added
+- Prompt entity
+- CRUD for promopts in telegram bot
+- using prompts while generating posts
+
 ## [0.0.2] - 2023-03-23
 ### Added
 - checking for post is published on handling callback query

@@ -52,7 +52,7 @@ export class TelegramService implements OnModuleInit {
             this.isAddingPrompt = false
             this.editingPromptId = prompt.id
 
-            await sendMessageToTelegram(data.from.id, `Please, send a new content for prompt: ${prompt.text}`, this.getCancelActionRequest())
+            await sendMessageToTelegram(data.from.id, `Please, send a new content for prompt. You can use a separator "//" for creating multiple prompts in one: ${prompt.text}`, this.getCancelActionRequest())
           }
 
           if (payload.event === 'remove_prompt') {
@@ -195,7 +195,7 @@ export class TelegramService implements OnModuleInit {
 
         if (message.text === '/add_prompt') {
           this.isAddingPrompt = true
-          await sendMessageToTelegram(message.chat.id, 'Send a content for new prompt in new message', this.getCancelActionRequest())
+          await sendMessageToTelegram(message.chat.id, 'Send a content for new prompt in new message. You can use a separator "//" for creating multiple prompts in one', this.getCancelActionRequest())
         }
 
         if (message.text === '/generate_post') {
@@ -240,7 +240,7 @@ export class TelegramService implements OnModuleInit {
       },
       {
         command: 'generate_post',
-        description: 'Generate a post',
+        description: 'Generate a post using random prompt from your set',
       },
       {
         command: 'prompts',
