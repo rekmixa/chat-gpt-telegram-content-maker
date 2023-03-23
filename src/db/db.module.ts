@@ -11,6 +11,6 @@ import { PromptRepository } from './prompt.repository'
     }),
   ],
   providers: [PostRepository, PromptRepository],
-  exports: [PostRepository]
+  exports: [PostRepository, PromptRepository]
 })
 export class DbModule { }

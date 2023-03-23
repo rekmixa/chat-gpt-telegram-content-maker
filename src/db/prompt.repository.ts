@@ -66,6 +66,13 @@ export class PromptRepository {
       .orderBy('id', 'asc')
   }
 
+  async remove(prompt: Prompt): Promise<void> {
+    await this.knex
+      .table<Prompt>(this.tableName)
+      .where('id', prompt.id)
+      .delete()
+  }
+
   async persist(prompt: Prompt): Promise<Prompt> {
     let result: Prompt[]
     if (prompt.id !== undefined) {

@@ -14,7 +14,7 @@ export class GeneratePostService {
     const requestMessages: ChatCompletionRequestMessage[] = [
       {
         role: 'system',
-        content: 'Придумай рандомный анекдот',
+        content: 'test',
       },
     ]
 
