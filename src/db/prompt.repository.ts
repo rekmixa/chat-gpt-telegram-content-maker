@@ -59,11 +59,17 @@ export class PromptRepository {
     return null
   }
 
-  async findAll(): Promise<Prompt[]> {
+  async findAllActive(): Promise<Prompt[]> {
     return this.knex
       .from<Prompt>(this.tableName)
       .select('*')
       .orderBy('id', 'asc')
+  }
+
+  async hasAnyActive(): Promise<boolean> {
+    const prompts = await this.findAllActive()
+
+    return prompts.length !== 0
   }
 
   async remove(prompt: Prompt): Promise<void> {

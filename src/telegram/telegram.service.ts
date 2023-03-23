@@ -160,7 +160,7 @@ export class TelegramService implements OnModuleInit {
         }
 
         if (message.text === '/prompts') {
-          const prompts = await this.promptRepository.findAll()
+          const prompts = await this.promptRepository.findAllActive()
 
           if (prompts.length === 0) {
             await sendMessageToTelegram(message.chat.id, 'No results found. Add first prompt!')

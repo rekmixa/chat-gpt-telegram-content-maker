@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
+import { PromptRepository } from './../db/prompt.repository'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { Post } from 'src/db/post.repository'
 import { GeneratePostService } from 'src/telegram/generate-post.service'
@@ -14,6 +15,7 @@ export class TasksService {
 
   constructor(
     @Inject(PostRepository) private readonly postRepository: PostRepository,
+    @Inject(PromptRepository) private readonly promptRepository: PromptRepository,
     @Inject(GeneratePostService) private readonly generatePostService: GeneratePostService,
     @Inject(PublishInChannelService) private readonly publishInChannelService: PublishInChannelService,
     @Inject(SendToModerationService) private readonly sendToModerationService: SendToModerationService,
@@ -22,6 +24,13 @@ export class TasksService {
   @Cron(CronExpression.EVERY_DAY_AT_7PM)
   async generatePosts(): Promise<void> {
     this.logger.debug('Generating posts for schedule')
+    const hasAnyPrompts = await this.promptRepository.hasAnyActive()
+    if (hasAnyPrompts === false) {
+      this.logger.warn('You have not added any prompts. Add at least one')
+
+      return
+    }
+
     const posts: Post[] = []
 
     for (let i = 0; i < 10; i++) {

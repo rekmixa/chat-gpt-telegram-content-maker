@@ -17,14 +17,14 @@ export function bytesToSize(bytes: number): string {
 export function showUptime(): string {
   function format(time) {
     function pad(s) {
-      return (s < 10 ? '0' : '') + s;
+      return (s < 10 ? '0' : '') + s
     }
 
-    const hours = Math.floor(time / (60 * 60));
-    const minutes = Math.floor(time % (60 * 60) / 60);
-    const seconds = Math.floor(time % 60);
+    const hours = Math.floor(time / (60 * 60))
+    const minutes = Math.floor(time % (60 * 60) / 60)
+    const seconds = Math.floor(time % 60)
 
-    return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+    return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds)
   }
 
   return format(process.uptime())
@@ -38,5 +38,5 @@ export function filePutContents(filename: string, content: string): void {
 }
 
 export function convertTimeZone(date: Date | string, timeZone): Date {
-  return new Date((typeof date === 'string' ? new Date(date) : date).toLocaleString("en-US", { timeZone }));
+  return new Date((typeof date === 'string' ? new Date(date) : date).toLocaleString("en-US", { timeZone }))
 }
