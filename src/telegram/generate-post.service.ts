@@ -17,7 +17,7 @@ export class GeneratePostService {
   async generatePost(): Promise<Post> {
     const prompt = await this.promptRepository.findRandom()
     if (prompt === null) {
-      throw new Error('You have not added any prompts. Add at least one')
+      throw new Error('Вы не добавили ни одного промпта. Добавьте хотя бы один')
     }
 
     this.logger.log(`Generating post using prompt: ${prompt.text}`)

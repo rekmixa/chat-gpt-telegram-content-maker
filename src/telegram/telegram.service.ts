@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import * as TelegramBot from 'node-telegram-bot-api'
+import { PROMPT_TEXT_SEPARATOR } from 'src/constants'
 import { PostRepository, PostStatus } from 'src/db/post.repository'
 import { PromptRepository } from 'src/db/prompt.repository'
 import { GeneratePostService } from './generate-post.service'
@@ -16,6 +17,7 @@ export class TelegramService implements OnModuleInit {
   private loading: boolean = false
   private editingPromptId?: number
   private isAddingPrompt: boolean = false
+  private separatorInfo: string = `Вы также можете использовать сепаратор "${PROMPT_TEXT_SEPARATOR}", чтобы создать множественный промпт`
 
   constructor(
     @Inject(GeneratePostService) private readonly generatePostService: GeneratePostService,
@@ -52,13 +54,13 @@ export class TelegramService implements OnModuleInit {
             this.isAddingPrompt = false
             this.editingPromptId = prompt.id
 
-            await sendMessageToTelegram(data.from.id, `Please, send a new content for prompt. You can use a separator "//" for creating multiple prompts in one: ${prompt.text}`, this.getCancelActionRequest())
+            await sendMessageToTelegram(data.from.id, `Отправьте следующим сообщением новый текст для промпта. ${this.separatorInfo}: ${prompt.text}`, this.getCancelActionRequest())
           }
 
           if (payload.event === 'remove_prompt') {
             this.isAddingPrompt = false
             await this.promptRepository.remove(prompt)
-            await sendMessageToTelegram(data.from.id, 'prompt successfully deleted')
+            await sendMessageToTelegram(data.from.id, 'Промпт успешно удалён')
           }
 
           return
@@ -71,7 +73,7 @@ export class TelegramService implements OnModuleInit {
           inline_keyboard: [
             [
               {
-                text: 'Moderate',
+                text: 'На модерацию',
                 callback_data: JSON.stringify({
                   event: 'moderate',
                   id: post.id,
@@ -83,7 +85,7 @@ export class TelegramService implements OnModuleInit {
 
         if (post.status === PostStatus.Published) {
           replyMarkup = undefined
-          successMessage = 'post already published'
+          successMessage = 'Пост уже был опубликован'
         } else if (payload.event === 'moderate') {
           post.status = PostStatus.Moderating
           await this.postRepository.persist(post)
@@ -91,13 +93,13 @@ export class TelegramService implements OnModuleInit {
         } else if (payload.event === 'publish') {
           await this.publishInChannelService.publish(post)
           replyMarkup = undefined
-          successMessage = 'published'
+          successMessage = 'Пост опубликован'
         } else if (payload.event === 'schedule') {
           await this.schedulePostService.schedule(post)
-          successMessage = 'scheduled'
+          successMessage = 'Пост отправлен в расписание на публикацию'
         } else if (payload.event === 'skip') {
           await this.skipPostService.skip(post)
-          successMessage = 'skipped'
+          successMessage = 'Пост исключён из расписания на публикацию'
         }
 
         await this.bot.editMessageReplyMarkup(replyMarkup, {
@@ -129,7 +131,7 @@ export class TelegramService implements OnModuleInit {
         await this.setTyping(message.chat.id)
 
         if (message.text === '/start') {
-          await sendMessageToTelegram(message.chat.id, `Your Chat ID: ${message.chat.id}`)
+          await sendMessageToTelegram(message.chat.id, `Chat ID: ${message.chat.id}`)
         }
 
         if (message.text === '/ping') {
@@ -145,7 +147,7 @@ export class TelegramService implements OnModuleInit {
         if (this.isAddingPrompt === true) {
           this.isAddingPrompt = false
           await this.promptRepository.persist({ text: message.text })
-          await sendMessageToTelegram(message.chat.id, 'Prompt successfully added!')
+          await sendMessageToTelegram(message.chat.id, 'Промпт успешно создан')
 
           return
         }
@@ -154,7 +156,7 @@ export class TelegramService implements OnModuleInit {
           const prompt = await this.promptRepository.getById(this.editingPromptId)
           prompt.text = message.text
           await this.promptRepository.persist(prompt)
-          await sendMessageToTelegram(message.chat.id, 'prompt changed')
+          await sendMessageToTelegram(message.chat.id, 'Промпт успешно обновлён')
 
           return
         }
@@ -163,7 +165,7 @@ export class TelegramService implements OnModuleInit {
           const prompts = await this.promptRepository.findAllActive()
 
           if (prompts.length === 0) {
-            await sendMessageToTelegram(message.chat.id, 'No results found. Add first prompt!')
+            await sendMessageToTelegram(message.chat.id, 'Нет ни одного промпта. Добавьте первый!')
             return
           }
 
@@ -173,14 +175,14 @@ export class TelegramService implements OnModuleInit {
                 inline_keyboard: [
                   [
                     {
-                      text: '🖋 Edit',
+                      text: 'Изменить',
                       callback_data: JSON.stringify({
                         event: 'edit_prompt',
                         id: prompt.id,
                       })
                     },
                     {
-                      text: '🗑 Remove',
+                      text: 'Удалить',
                       callback_data: JSON.stringify({
                         event: 'remove_prompt',
                         id: prompt.id,
@@ -195,10 +197,16 @@ export class TelegramService implements OnModuleInit {
 
         if (message.text === '/add_prompt') {
           this.isAddingPrompt = true
-          await sendMessageToTelegram(message.chat.id, 'Send a content for new prompt in new message. You can use a separator "//" for creating multiple prompts in one', this.getCancelActionRequest())
+          await sendMessageToTelegram(message.chat.id, `Отправьте следующим сообщением текст промпта. ${this.separatorInfo}`, this.getCancelActionRequest())
         }
 
         if (message.text === '/generate_post') {
+          const hasPrompts = await this.promptRepository.hasAnyActive()
+          if (hasPrompts === false) {
+            await sendMessageToTelegram(message.chat.id, 'Вы не добавили ни одного промпта. Добавьте хотя бы один')
+            return
+          }
+
           const post = await this.generatePostService.generatePost()
           await this.sendToModerationService.send(post)
         }
@@ -217,7 +225,7 @@ export class TelegramService implements OnModuleInit {
         inline_keyboard: [
           [
             {
-              text: 'Cancel',
+              text: 'Отменить действие',
               callback_data: JSON.stringify({
                 event: 'cancel_action',
               }),
@@ -232,23 +240,23 @@ export class TelegramService implements OnModuleInit {
     const commands = [
       {
         command: 'start',
-        description: 'Start',
+        description: 'Старт',
       },
       {
         command: 'ping',
-        description: 'Ping',
+        description: 'Пинг',
       },
       {
         command: 'generate_post',
-        description: 'Generate a post using random prompt from your set',
+        description: 'Сгенерировать пост, используя рандомный промпт из набора',
       },
       {
         command: 'prompts',
-        description: 'Manage prompts',
+        description: 'Упраление промптами',
       },
       {
         command: 'add_prompt',
-        description: 'Add prompt',
+        description: 'Добавить промпт',
       },
     ]
 

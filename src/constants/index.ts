@@ -1,1 +1,1 @@
-export const PROMPT_TEXT_SEPARATOR = '/'
+export const PROMPT_TEXT_SEPARATOR = '//'

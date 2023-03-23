@@ -36,15 +36,15 @@ export class SendToModerationService {
       inline_keyboard: [
         [
           {
-            text: 'Publish',
+            text: 'Опубликовать',
             callback_data: callbackData('publish'),
           },
           {
-            text: 'Schedule',
+            text: 'В очередь',
             callback_data: callbackData('schedule'),
           },
           {
-            text: 'Skip',
+            text: 'Отклонить',
             callback_data: callbackData('skip'),
           },
         ],

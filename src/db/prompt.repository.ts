@@ -51,7 +51,7 @@ export class PromptRepository {
       .from<Prompt>(this.tableName)
       .select('*')
       .where('status', PromptStatus.Active)
-      .orderBy('random()')
+      .orderByRaw('random()')
       .first()
 
     if (prompt) {

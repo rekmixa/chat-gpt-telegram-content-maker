@@ -7,6 +7,8 @@
 - Prompt entity
 - CRUD for promopts in telegram bot
 - using prompts while generating posts
+### Changed
+- language for telegram bot interface to Russian
 
 ## [0.0.2] - 2023-03-23
 ### Added
