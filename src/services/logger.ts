@@ -13,7 +13,7 @@ export default class Logger extends ConsoleLogger {
   error(message: any, trace?: string, context?: string) {
     super.error(this.prepareLogMessage(message, 'red'), trace, context)
 
-    sendMessageToAdmin(`${message}, ${trace}`)
+    sendMessageToAdmin(`⚠️ ${message} | ${trace}`)
       .catch((error) => {
         super.error(this.prepareLogMessage('Error while reporting log to telegram', 'red'), error)
       })
