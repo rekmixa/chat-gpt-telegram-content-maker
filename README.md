@@ -14,7 +14,7 @@ make cp-env
 
 ```bash
 make install
-make migrate
+make migrate-all
 ```
 
 View docker container logs

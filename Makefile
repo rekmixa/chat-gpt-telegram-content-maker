@@ -40,5 +40,7 @@ install: cp-env mkdir-data docker-compose-override up
 migrate:
 	@docker-compose exec node yarn knex migrate:up
 
+migrate-all: migrate migrate migrate
+
 rm-git:
 	@rm -rf .git

@@ -1,3 +1,4 @@
+import { ScheduleRepository } from './schedule.repository'
 import { Module } from '@nestjs/common'
 import { KnexModule } from 'nestjs-knex'
 import { PostRepository } from './post.repository'
@@ -10,7 +11,7 @@ import { PromptRepository } from './prompt.repository'
       config,
     }),
   ],
-  providers: [PostRepository, PromptRepository],
-  exports: [PostRepository, PromptRepository]
+  providers: [PostRepository, PromptRepository, ScheduleRepository],
+  exports: [PostRepository, PromptRepository, ScheduleRepository],
 })
-export class DbModule { }
+export class DbModule {}

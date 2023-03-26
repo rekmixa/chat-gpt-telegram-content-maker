@@ -3,6 +3,8 @@ import * as TelegramBot from 'node-telegram-bot-api'
 import { PROMPT_TEXT_SEPARATOR } from 'src/constants'
 import { PostRepository, PostStatus } from 'src/db/post.repository'
 import { PromptRepository } from 'src/db/prompt.repository'
+
+import { ScheduleRepository } from './../db/schedule.repository'
 import { GeneratePostService } from './generate-post.service'
 import { PublishInChannelService } from './publish-in-channel.service'
 import { SchedulePostService } from './schedule-post.service'
@@ -20,15 +22,24 @@ export class TelegramService implements OnModuleInit {
   private separatorInfo: string = `Вы также можете использовать сепаратор "${PROMPT_TEXT_SEPARATOR}", чтобы создать множественный промпт`
 
   constructor(
-    @Inject(GeneratePostService) private readonly generatePostService: GeneratePostService,
-    @Inject(PublishInChannelService) private readonly publishInChannelService: PublishInChannelService,
-    @Inject(SendToModerationService) private readonly sendToModerationService: SendToModerationService,
-    @Inject(SchedulePostService) private readonly schedulePostService: SchedulePostService,
+    @Inject(GeneratePostService)
+    private readonly generatePostService: GeneratePostService,
+    @Inject(PublishInChannelService)
+    private readonly publishInChannelService: PublishInChannelService,
+    @Inject(SendToModerationService)
+    private readonly sendToModerationService: SendToModerationService,
+    @Inject(SchedulePostService)
+    private readonly schedulePostService: SchedulePostService,
     @Inject(SkipPostService) private readonly skipPostService: SkipPostService,
     @Inject(PostRepository) private readonly postRepository: PostRepository,
-    @Inject(PromptRepository) private readonly promptRepository: PromptRepository,
+    @Inject(PromptRepository)
+    private readonly promptRepository: PromptRepository,
+    @Inject(ScheduleRepository)
+    private readonly scheduleRepository: ScheduleRepository,
   ) {
-    this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true })
+    this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
+      polling: true,
+    })
   }
 
   async onModuleInit(): Promise<void> {
@@ -37,13 +48,31 @@ export class TelegramService implements OnModuleInit {
     this.bot.on('callback_query', async data => {
       try {
         const payload = JSON.parse(data.data)
+        if (payload.event === 'toggle_schedule') {
+          const schedule = await this.scheduleRepository.getById(payload.id)
+          schedule.is_active = !schedule.is_active
+          await this.scheduleRepository.persist(schedule)
+          await this.bot.editMessageReplyMarkup(
+            await this.getSchedulesReplyMarkup(),
+            {
+              chat_id: data.message.chat.id,
+              message_id: data.message.message_id,
+            },
+          )
+
+          return
+        }
+
         if (payload.event === 'cancel_action') {
           this.isAddingPrompt = false
           this.editingPromptId = undefined
-          await this.bot.editMessageReplyMarkup({}, {
-            chat_id: data.message.chat.id,
-            message_id: data.message.message_id,
-          })
+          await this.bot.editMessageReplyMarkup(
+            {},
+            {
+              chat_id: data.message.chat.id,
+              message_id: data.message.message_id,
+            },
+          )
 
           return
         }
@@ -54,7 +83,11 @@ export class TelegramService implements OnModuleInit {
             this.isAddingPrompt = false
             this.editingPromptId = prompt.id
 
-            await sendMessageToTelegram(data.from.id, `Отправьте следующим сообщением новый текст для промпта. ${this.separatorInfo}: ${prompt.text}`, this.getCancelActionRequest())
+            await sendMessageToTelegram(
+              data.from.id,
+              `Отправьте следующим сообщением новый текст для промпта. ${this.separatorInfo}: ${prompt.text}`,
+              this.getCancelActionRequest(),
+            )
           }
 
           if (payload.event === 'remove_prompt') {
@@ -66,49 +99,53 @@ export class TelegramService implements OnModuleInit {
           return
         }
 
-        const post = await this.postRepository.getById(payload.id)
+        if (
+          ['moderate', 'publish', 'schedule', 'skip'].includes(payload.event)
+        ) {
+          const post = await this.postRepository.getById(payload.id)
 
-        let successMessage: string
-        let replyMarkup = {
-          inline_keyboard: [
-            [
-              {
-                text: 'На модерацию',
-                callback_data: JSON.stringify({
-                  event: 'moderate',
-                  id: post.id,
-                }),
-              },
+          let successMessage: string
+          let replyMarkup = {
+            inline_keyboard: [
+              [
+                {
+                  text: 'На модерацию',
+                  callback_data: JSON.stringify({
+                    event: 'moderate',
+                    id: post.id,
+                  }),
+                },
+              ],
             ],
-          ]
-        }
+          }
 
-        if (post.status === PostStatus.Published) {
-          replyMarkup = undefined
-          successMessage = 'Пост уже был опубликован'
-        } else if (payload.event === 'moderate') {
-          post.status = PostStatus.Moderating
-          await this.postRepository.persist(post)
-          replyMarkup = this.sendToModerationService.getReplyMarkup(post)
-        } else if (payload.event === 'publish') {
-          await this.publishInChannelService.publish(post)
-          replyMarkup = undefined
-          successMessage = 'Пост опубликован'
-        } else if (payload.event === 'schedule') {
-          await this.schedulePostService.schedule(post)
-          successMessage = 'Пост отправлен в расписание на публикацию'
-        } else if (payload.event === 'skip') {
-          await this.skipPostService.skip(post)
-          successMessage = 'Пост исключён из расписания на публикацию'
-        }
+          if (post.status === PostStatus.Published) {
+            replyMarkup = undefined
+            successMessage = 'Пост уже был опубликован'
+          } else if (payload.event === 'moderate') {
+            post.status = PostStatus.Moderating
+            await this.postRepository.persist(post)
+            replyMarkup = this.sendToModerationService.getReplyMarkup(post)
+          } else if (payload.event === 'publish') {
+            await this.publishInChannelService.publish(post)
+            replyMarkup = undefined
+            successMessage = 'Пост опубликован'
+          } else if (payload.event === 'schedule') {
+            await this.schedulePostService.schedule(post)
+            successMessage = 'Пост отправлен в расписание на публикацию'
+          } else if (payload.event === 'skip') {
+            await this.skipPostService.skip(post)
+            successMessage = 'Пост исключён из расписания на публикацию'
+          }
 
-        await this.bot.editMessageReplyMarkup(replyMarkup, {
-          chat_id: data.message.chat.id,
-          message_id: data.message.message_id,
-        })
+          await this.bot.editMessageReplyMarkup(replyMarkup, {
+            chat_id: data.message.chat.id,
+            message_id: data.message.message_id,
+          })
 
-        if (successMessage !== undefined) {
-          await sendMessageToTelegram(data.from.id, successMessage)
+          if (successMessage !== undefined) {
+            await sendMessageToTelegram(data.from.id, successMessage)
+          }
         }
       } catch (error) {
         this.logger.error('Callback query error', error)
@@ -131,14 +168,19 @@ export class TelegramService implements OnModuleInit {
         await this.setTyping(message.chat.id)
 
         if (message.text === '/start') {
-          await sendMessageToTelegram(message.chat.id, `Chat ID: ${message.chat.id}`)
+          await sendMessageToTelegram(
+            message.chat.id,
+            `Chat ID: ${message.chat.id}`,
+          )
         }
 
         if (message.text === '/ping') {
           await sendMessageToTelegram(message.chat.id, 'pong')
         }
 
-        if (String(message.chat.id) !== String(process.env.TELEGRAM_ADMIN_CHAT_ID)) {
+        if (
+          String(message.chat.id) !== String(process.env.TELEGRAM_ADMIN_CHAT_ID)
+        ) {
           this.logger.warn('Access denied')
 
           return
@@ -153,19 +195,41 @@ export class TelegramService implements OnModuleInit {
         }
 
         if (this.editingPromptId !== undefined) {
-          const prompt = await this.promptRepository.getById(this.editingPromptId)
+          const prompt = await this.promptRepository.getById(
+            this.editingPromptId,
+          )
           prompt.text = message.text
           await this.promptRepository.persist(prompt)
-          await sendMessageToTelegram(message.chat.id, 'Промпт успешно обновлён')
+          await sendMessageToTelegram(
+            message.chat.id,
+            'Промпт успешно обновлён',
+          )
 
           return
+        }
+
+        if (message.text === '/generate_post') {
+          const hasPrompts = await this.promptRepository.hasAnyActive()
+          if (hasPrompts === false) {
+            await sendMessageToTelegram(
+              message.chat.id,
+              'Вы не добавили ни одного промпта. Добавьте хотя бы один',
+            )
+            return
+          }
+
+          const post = await this.generatePostService.generatePost()
+          await this.sendToModerationService.send(post)
         }
 
         if (message.text === '/prompts') {
           const prompts = await this.promptRepository.findAllActive()
 
           if (prompts.length === 0) {
-            await sendMessageToTelegram(message.chat.id, 'Нет ни одного промпта. Добавьте первый!')
+            await sendMessageToTelegram(
+              message.chat.id,
+              'Нет ни одного промпта. Добавьте первый!',
+            )
             return
           }
 
@@ -179,14 +243,14 @@ export class TelegramService implements OnModuleInit {
                       callback_data: JSON.stringify({
                         event: 'edit_prompt',
                         id: prompt.id,
-                      })
+                      }),
                     },
                     {
                       text: 'Удалить',
                       callback_data: JSON.stringify({
                         event: 'remove_prompt',
                         id: prompt.id,
-                      })
+                      }),
                     },
                   ],
                 ],
@@ -197,18 +261,21 @@ export class TelegramService implements OnModuleInit {
 
         if (message.text === '/add_prompt') {
           this.isAddingPrompt = true
-          await sendMessageToTelegram(message.chat.id, `Отправьте следующим сообщением текст промпта. ${this.separatorInfo}`, this.getCancelActionRequest())
+          await sendMessageToTelegram(
+            message.chat.id,
+            `Отправьте следующим сообщением текст промпта. ${this.separatorInfo}`,
+            this.getCancelActionRequest(),
+          )
         }
 
-        if (message.text === '/generate_post') {
-          const hasPrompts = await this.promptRepository.hasAnyActive()
-          if (hasPrompts === false) {
-            await sendMessageToTelegram(message.chat.id, 'Вы не добавили ни одного промпта. Добавьте хотя бы один')
-            return
-          }
-
-          const post = await this.generatePostService.generatePost()
-          await this.sendToModerationService.send(post)
+        if (message.text === '/schedules') {
+          await sendMessageToTelegram(
+            message.chat.id,
+            'Расписание публикации:',
+            {
+              reply_markup: await this.getSchedulesReplyMarkup(),
+            },
+          )
         }
       } catch (error) {
         this.logger.error('Handling message error', error)
@@ -217,6 +284,30 @@ export class TelegramService implements OnModuleInit {
         this.loading = false
       }
     })
+  }
+
+  private async getSchedulesReplyMarkup(): Promise<any> {
+    const schedules = await this.scheduleRepository.getSchedules()
+
+    return {
+      inline_keyboard: [
+        ...schedules.map(schedule => {
+          return [
+            {
+              text: schedule.time,
+              callback_data: JSON.stringify({}),
+            },
+            {
+              text: schedule.is_active ? 'Отключить' : 'Включить',
+              callback_data: JSON.stringify({
+                event: 'toggle_schedule',
+                id: schedule.id,
+              }),
+            },
+          ]
+        }),
+      ],
+    }
   }
 
   private getCancelActionRequest(): any {
@@ -257,6 +348,10 @@ export class TelegramService implements OnModuleInit {
       {
         command: 'add_prompt',
         description: 'Добавить промпт',
+      },
+      {
+        command: 'schedules',
+        description: 'Настройки расписания',
       },
     ]
 
