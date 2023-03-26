@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2023-03-26
+### Changed
+- template for edit prompt message
+### Fixed
+- checking schedule logic
+
 ## [0.2.0] - 2023-03-26
 ### Added
 - ability to edit posts schedule in telegram bot

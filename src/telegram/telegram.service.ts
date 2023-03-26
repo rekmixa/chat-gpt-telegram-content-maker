@@ -85,7 +85,7 @@ export class TelegramService implements OnModuleInit {
 
             await sendMessageToTelegram(
               data.from.id,
-              `Отправьте следующим сообщением новый текст для промпта. ${this.separatorInfo}: ${prompt.text}`,
+              `Отправьте следующим сообщением новый текст для промпта. ${this.separatorInfo}`,
               this.getCancelActionRequest(),
             )
           }
