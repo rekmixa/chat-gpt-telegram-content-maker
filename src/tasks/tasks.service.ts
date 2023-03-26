@@ -66,7 +66,7 @@ export class TasksService {
     const hours = new Date().getHours()
     const time = `${hours < 10 ? 0 : ''}${hours}:00`
     const schedule = await this.scheduleRepository.findByTime(time)
-    if (schedule === null) {
+    if (schedule === null || schedule.is_active === false) {
       this.logger.log('Schedule for current time does not exists')
       return
     }
