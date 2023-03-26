@@ -5,6 +5,11 @@ import { PostRepository, PostStatus } from 'src/db/post.repository'
 import { PromptRepository } from 'src/db/prompt.repository'
 
 import { ScheduleRepository } from './../db/schedule.repository'
+import {
+  SettingBooleanValue,
+  SettingKey,
+  SettingRepository,
+} from './../db/setting.repository'
 import { GeneratePostService } from './generate-post.service'
 import { PublishInChannelService } from './publish-in-channel.service'
 import { SchedulePostService } from './schedule-post.service'
@@ -36,6 +41,8 @@ export class TelegramService implements OnModuleInit {
     private readonly promptRepository: PromptRepository,
     @Inject(ScheduleRepository)
     private readonly scheduleRepository: ScheduleRepository,
+    @Inject(SettingRepository)
+    private readonly settingRepository: SettingRepository,
   ) {
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
       polling: true,
@@ -48,6 +55,22 @@ export class TelegramService implements OnModuleInit {
     this.bot.on('callback_query', async data => {
       try {
         const payload = JSON.parse(data.data)
+        if (payload.event === 'toggle_auto') {
+          const value = await this.settingRepository.isAutoEnabled()
+          await this.settingRepository.set(
+            SettingKey.Auto,
+            value ? SettingBooleanValue.False : SettingBooleanValue.True,
+          )
+
+          await this.bot.editMessageReplyMarkup(
+            await this.getSetAutoReplyMarkup(),
+            {
+              chat_id: data.message.chat.id,
+              message_id: data.message.message_id,
+            },
+          )
+          return
+        }
         if (payload.event === 'toggle_schedule') {
           const schedule = await this.scheduleRepository.getById(payload.id)
           schedule.is_active = !schedule.is_active
@@ -105,19 +128,7 @@ export class TelegramService implements OnModuleInit {
           const post = await this.postRepository.getById(payload.id)
 
           let successMessage: string
-          let replyMarkup = {
-            inline_keyboard: [
-              [
-                {
-                  text: 'На модерацию',
-                  callback_data: JSON.stringify({
-                    event: 'moderate',
-                    id: post.id,
-                  }),
-                },
-              ],
-            ],
-          }
+          let replyMarkup = null
 
           if (post.status === PostStatus.Published) {
             replyMarkup = undefined
@@ -125,7 +136,6 @@ export class TelegramService implements OnModuleInit {
           } else if (payload.event === 'moderate') {
             post.status = PostStatus.Moderating
             await this.postRepository.persist(post)
-            replyMarkup = this.sendToModerationService.getReplyMarkup(post)
           } else if (payload.event === 'publish') {
             await this.publishInChannelService.publish(post)
             replyMarkup = undefined
@@ -136,6 +146,10 @@ export class TelegramService implements OnModuleInit {
           } else if (payload.event === 'skip') {
             await this.skipPostService.skip(post)
             successMessage = 'Пост исключён из расписания на публикацию'
+          }
+
+          if (replyMarkup !== undefined) {
+            replyMarkup = this.sendToModerationService.getReplyMarkup(post)
           }
 
           await this.bot.editMessageReplyMarkup(replyMarkup, {
@@ -277,6 +291,16 @@ export class TelegramService implements OnModuleInit {
             },
           )
         }
+
+        if (message.text === '/set_auto') {
+          await sendMessageToTelegram(
+            message.chat.id,
+            'При включённом автономном режиме, сообщения будут сразу попадать в очередь на публикацию. Но возможность ручной модерации всё равно останется:',
+            {
+              reply_markup: await this.getSetAutoReplyMarkup(),
+            },
+          )
+        }
       } catch (error) {
         this.logger.error('Handling message error', error)
       } finally {
@@ -284,6 +308,27 @@ export class TelegramService implements OnModuleInit {
         this.loading = false
       }
     })
+  }
+
+  private async getSetAutoReplyMarkup(): Promise<any> {
+    const value = await this.settingRepository.get(SettingKey.Auto)
+
+    return {
+      inline_keyboard: [
+        [
+          {
+            text: `${
+              value === SettingBooleanValue.True
+                ? '🚫 Отключить'
+                : '✅ Включить'
+            } `,
+            callback_data: JSON.stringify({
+              event: 'toggle_auto',
+            }),
+          },
+        ],
+      ],
+    }
   }
 
   private async getSchedulesReplyMarkup(): Promise<any> {
@@ -352,6 +397,10 @@ export class TelegramService implements OnModuleInit {
       {
         command: 'schedules',
         description: 'Настройки расписания',
+      },
+      {
+        command: 'set_auto',
+        description: 'Автономный режим',
       },
     ]
 

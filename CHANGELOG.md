@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2023-03-26
+### Added
+- automatic mode
+
 ## [0.2.1] - 2023-03-26
 ### Changed
 - template for edit prompt message

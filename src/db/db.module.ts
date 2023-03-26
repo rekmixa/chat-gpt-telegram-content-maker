@@ -4,6 +4,7 @@ import { KnexModule } from 'nestjs-knex'
 import { PostRepository } from './post.repository'
 import config from '../../knexfile'
 import { PromptRepository } from './prompt.repository'
+import { SettingRepository } from './setting.repository'
 
 @Module({
   imports: [
@@ -11,7 +12,17 @@ import { PromptRepository } from './prompt.repository'
       config,
     }),
   ],
-  providers: [PostRepository, PromptRepository, ScheduleRepository],
-  exports: [PostRepository, PromptRepository, ScheduleRepository],
+  providers: [
+    PostRepository,
+    PromptRepository,
+    ScheduleRepository,
+    SettingRepository,
+  ],
+  exports: [
+    PostRepository,
+    PromptRepository,
+    ScheduleRepository,
+    SettingRepository,
+  ],
 })
 export class DbModule {}
