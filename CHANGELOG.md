@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2023-03-26
+### Added
+- ability to edit posts schedule in telegram bot
+
 ## [0.1.1] - 2023-03-24
 ### Changed
 - crontab rule for generate posts task

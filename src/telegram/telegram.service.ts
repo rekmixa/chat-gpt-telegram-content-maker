@@ -294,7 +294,7 @@ export class TelegramService implements OnModuleInit {
         ...schedules.map(schedule => {
           return [
             {
-              text: schedule.time,
+              text: `${schedule.is_active ? '✅' : '🚫'} ${schedule.time}`,
               callback_data: JSON.stringify({}),
             },
             {

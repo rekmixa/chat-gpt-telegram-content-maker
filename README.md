@@ -15,6 +15,7 @@ make cp-env
 ```bash
 make install
 make migrate-all
+make seed-all
 ```
 
 View docker container logs
@@ -65,4 +66,16 @@ Down migration:
 
 ```bash
 yarn knex migrate:down
+```
+
+## Seeds
+
+Create seed:  
+
+```bash
+yarn knex seed:make seed_name
+```
+
+```bash
+yarn knex seed:run
 ```

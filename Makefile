@@ -42,5 +42,10 @@ migrate:
 
 migrate-all: migrate migrate migrate
 
+seed:
+	@docker-compose exec node yarn knex seed:run
+
+seed-all: seed
+
 rm-git:
 	@rm -rf .git

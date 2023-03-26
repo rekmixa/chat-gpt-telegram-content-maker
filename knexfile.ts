@@ -10,11 +10,14 @@ export default {
     user: String(process.env.DB_USER),
     password: String(process.env.DB_PASSWORD),
     database: String(process.env.DB_NAME),
-    charset: String(process.env.DB_CHARSET)
+    charset: String(process.env.DB_CHARSET),
   },
   migrations: {
     tableName: 'migrations',
     directory: 'migrations',
-    extension: 'ts'
-  }
+    extension: 'ts',
+  },
+  seeds: {
+    directory: 'seeds',
+  },
 } as Knex.Config
