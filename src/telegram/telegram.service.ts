@@ -302,6 +302,7 @@ export class TelegramService implements OnModuleInit {
           )
         }
       } catch (error) {
+        console.log(error)
         this.logger.error('Handling message error', error)
       } finally {
         this.editingPromptId = undefined
