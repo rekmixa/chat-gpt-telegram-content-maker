@@ -1,9 +1,9 @@
 import { SettingRepository } from './../db/setting.repository'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { PromptRepository } from './../db/prompt.repository'
-import { ChatCompletionRequestMessage } from 'openai/dist/api'
 import { Post, PostRepository, PostStatus } from './../db/post.repository'
 import { OpenAiService } from './open-ai.service'
+import { ChatCompletionMessageParam } from 'openai/resources'
 
 @Injectable()
 export class GeneratePostService {
@@ -27,7 +27,7 @@ export class GeneratePostService {
     this.logger.log(`Generating post using prompt: ${prompt.text}`)
 
     const promptTexts = this.promptRepository.splitTextToPrompts(prompt)
-    const requestMessages: ChatCompletionRequestMessage[] = promptTexts.map(
+    const requestMessages: ChatCompletionMessageParam[] = promptTexts.map(
       content => ({
         role: 'system',
         content,
@@ -46,7 +46,7 @@ export class GeneratePostService {
     const autoEnabled = await this.settingRepository.isAutoEnabled()
 
     return this.postRepository.persist({
-      content: firstMessage.content,
+      content: firstMessage.content as string,
       status: autoEnabled ? PostStatus.Scheduled : PostStatus.Moderating,
     })
   }

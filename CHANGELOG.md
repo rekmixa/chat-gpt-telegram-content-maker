@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2024-10-11
+### Added
+- OPENAI_BASE_URL param to env
+### Changed
+- upgraded node js to v18.20.4
+- upgraded openai package to v4.67.3
+
 ## [0.3.0] - 2023-03-26
 ### Added
 - automatic mode
