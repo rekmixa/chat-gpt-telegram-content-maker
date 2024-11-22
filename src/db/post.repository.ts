@@ -62,6 +62,15 @@ export class PostRepository {
     return null
   }
 
+  async findAllScheduled(): Promise<Post[]> {
+    return this.knex
+      .from<Post>(this.tableName)
+      .select('*')
+      .where('status', PostStatus.Scheduled)
+      .orderBy('id', 'asc')
+      .returning('*')
+  }
+
   async persist(post: Post): Promise<Post> {
     let result: Post[]
     if (post.id !== undefined) {

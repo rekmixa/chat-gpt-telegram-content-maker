@@ -236,6 +236,14 @@ export class TelegramService implements OnModuleInit {
           await this.sendToModerationService.send(post)
         }
 
+        if (message.text === '/queue') {
+          const posts = await this.postRepository.findAllScheduled()
+
+          for (const post of posts) {
+            await this.sendToModerationService.send(post)
+          }
+        }
+
         if (message.text === '/prompts') {
           const prompts = await this.promptRepository.findAllActive()
 
@@ -386,6 +394,10 @@ export class TelegramService implements OnModuleInit {
       {
         command: 'generate_post',
         description: 'Сгенерировать пост, используя рандомный промпт из набора',
+      },
+      {
+        command: 'queue',
+        description: 'Показать очередь на публикацию',
       },
       {
         command: 'prompts',
