@@ -15,7 +15,7 @@ import { PublishInChannelService } from './publish-in-channel.service'
 import { SchedulePostService } from './schedule-post.service'
 import { SendToModerationService } from './send-to-moderation.service'
 import { SkipPostService } from './skip-post.service'
-import { sendMessageToTelegram } from './telegram.module'
+import { getAdminIds, sendMessageToTelegram } from './telegram.module'
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -192,9 +192,7 @@ export class TelegramService implements OnModuleInit {
           await sendMessageToTelegram(message.chat.id, 'pong')
         }
 
-        if (
-          String(message.chat.id) !== String(process.env.TELEGRAM_ADMIN_CHAT_ID)
-        ) {
+        if (!getAdminIds().includes(String(message.chat.id))) {
           this.logger.warn('Access denied')
 
           return
@@ -240,7 +238,9 @@ export class TelegramService implements OnModuleInit {
           const posts = await this.postRepository.findAllScheduled()
 
           for (const post of posts) {
-            await this.sendToModerationService.send(post)
+            await sendMessageToTelegram(message.chat.id, post.content, {
+              reply_markup: this.sendToModerationService.getReplyMarkup(post),
+            })
           }
         }
 

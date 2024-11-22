@@ -27,12 +27,18 @@ export async function sendMessageToTelegram(chatId: string, content: string, req
   }
 }
 
+export function getAdminIds(): string[] {
+  return String(process.env.TELEGRAM_ADMIN_CHAT_IDS).split(',')
+}
+
 export async function sendMessageToAdmin(content: string, request?: any, tries: number = 5): Promise<void> {
-  await sendMessageToTelegram(process.env.TELEGRAM_ADMIN_CHAT_ID, content, request)
+  for (const id of getAdminIds()) {
+    await sendMessageToTelegram(id, content, request, tries)
+  }
 }
 
 export async function sendMessageToChannel(content: string, request?: any, tries: number = 5): Promise<void> {
-  await sendMessageToTelegram(process.env.TELEGRAM_CHANNEL_CHAT_ID, content, request)
+  await sendMessageToTelegram(process.env.TELEGRAM_CHANNEL_CHAT_ID, content, request, tries)
 }
 
 @Module({

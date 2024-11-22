@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2024-11-22
+### Added
+- /queue command
+- ability to set multiple bot admins
+
 ## [1.0.0] - 2024-10-11
 ### Added
 - OPENAI_BASE_URL param to env
