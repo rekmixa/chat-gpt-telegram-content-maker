@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectKnex, Knex } from 'nestjs-knex'
 
 export enum SettingKey {
+  Enabled = 'enabled',
   Auto = 'auto',
 }
 
@@ -26,6 +27,12 @@ export class SettingRepository {
 
   async isAutoEnabled(): Promise<boolean> {
     const value = await this.get(SettingKey.Auto)
+
+    return value === SettingBooleanValue.True
+  }
+
+  async isGeneratingPostsEnabled(): Promise<boolean> {
+    const value = await this.get(SettingKey.Enabled)
 
     return value === SettingBooleanValue.True
   }

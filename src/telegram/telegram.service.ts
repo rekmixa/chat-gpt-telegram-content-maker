@@ -63,7 +63,7 @@ export class TelegramService implements OnModuleInit {
           )
 
           await this.bot.editMessageReplyMarkup(
-            await this.getSetAutoReplyMarkup(),
+            await this.getBooleanSettingReplyMarkup(SettingKey.Auto),
             {
               chat_id: data.message.chat.id,
               message_id: data.message.message_id,
@@ -71,6 +71,24 @@ export class TelegramService implements OnModuleInit {
           )
           return
         }
+
+        if (payload.event === 'toggle_enabled') {
+          const value = await this.settingRepository.isGeneratingPostsEnabled()
+          await this.settingRepository.set(
+            SettingKey.Enabled,
+            value ? SettingBooleanValue.False : SettingBooleanValue.True,
+          )
+
+          await this.bot.editMessageReplyMarkup(
+            await this.getBooleanSettingReplyMarkup(SettingKey.Enabled),
+            {
+              chat_id: data.message.chat.id,
+              message_id: data.message.message_id,
+            },
+          )
+          return
+        }
+
         if (payload.event === 'toggle_schedule') {
           const schedule = await this.scheduleRepository.getById(payload.id)
           schedule.is_active = !schedule.is_active
@@ -314,9 +332,19 @@ export class TelegramService implements OnModuleInit {
         if (message.text === '/set_auto') {
           await sendMessageToTelegram(
             message.chat.id,
-            'При включённом автономном режиме, сообщения будут сразу попадать в очередь на публикацию. Но возможность ручной модерации всё равно останется:',
+            'При включённом автономном режиме, сообщения будут сразу попадать в очередь на публикацию. Но возможность ручной модерации всё равно останется',
             {
-              reply_markup: await this.getSetAutoReplyMarkup(),
+              reply_markup: await this.getBooleanSettingReplyMarkup(SettingKey.Auto),
+            },
+          )
+        }
+
+        if (message.text === '/set_enabled') {
+          await sendMessageToTelegram(
+            message.chat.id,
+            'Автоматическая генерация постов в очередь на публикацию каждый день',
+            {
+              reply_markup: await this.getBooleanSettingReplyMarkup(SettingKey.Enabled),
             },
           )
         }
@@ -330,8 +358,8 @@ export class TelegramService implements OnModuleInit {
     })
   }
 
-  private async getSetAutoReplyMarkup(): Promise<any> {
-    const value = await this.settingRepository.get(SettingKey.Auto)
+  private async getBooleanSettingReplyMarkup(setting: SettingKey): Promise<any> {
+    const value = await this.settingRepository.get(setting)
 
     return {
       inline_keyboard: [
@@ -343,7 +371,7 @@ export class TelegramService implements OnModuleInit {
                 : '✅ Включить'
             } `,
             callback_data: JSON.stringify({
-              event: 'toggle_auto',
+              event: `toggle_${setting}`,
             }),
           },
         ],
@@ -425,6 +453,10 @@ export class TelegramService implements OnModuleInit {
       {
         command: 'set_auto',
         description: 'Автономный режим',
+      },
+      {
+        command: 'set_enabled',
+        description: 'Генерация постов каждый день',
       },
     ]
 

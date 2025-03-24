@@ -10,6 +10,7 @@ import { PostRepository } from './../db/post.repository'
 import { PromptRepository } from './../db/prompt.repository'
 import { ScheduleRepository } from './../db/schedule.repository'
 import { delay } from './../helpers'
+import { SettingRepository } from './../db/setting.repository'
 
 @Injectable()
 export class TasksService {
@@ -21,6 +22,8 @@ export class TasksService {
     private readonly promptRepository: PromptRepository,
     @Inject(ScheduleRepository)
     private readonly scheduleRepository: ScheduleRepository,
+    @Inject(SettingRepository)
+    private readonly settingRepository: SettingRepository,
     @Inject(GeneratePostService)
     private readonly generatePostService: GeneratePostService,
     @Inject(PublishInChannelService)
@@ -32,6 +35,14 @@ export class TasksService {
   @Cron(CronExpression.EVERY_DAY_AT_10PM)
   async generatePosts(): Promise<void> {
     this.logger.debug('Generating posts for schedule')
+
+    const enabled: boolean = await this.settingRepository.isGeneratingPostsEnabled()
+    if (!enabled) {
+      this.logger.warn('Generating posts disabled...')
+
+      return
+    }
+
     const hasAnyPrompts = await this.promptRepository.hasAnyActive()
     if (hasAnyPrompts === false) {
       this.logger.warn('You have not added any prompts. Add at least one')

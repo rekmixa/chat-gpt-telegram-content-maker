@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-03-24
+
+### Added
+
+- /set_enabled command: ability to enable/disable posts generation
+
 ## [1.2.0] - 2025-03-24
 
 ### Changed
