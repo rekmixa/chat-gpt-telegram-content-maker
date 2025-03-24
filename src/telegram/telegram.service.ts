@@ -127,38 +127,46 @@ export class TelegramService implements OnModuleInit {
         ) {
           const post = await this.postRepository.getById(payload.id)
 
-          let successMessage: string
+          let replyMessage: string
           let replyMarkup = null
 
           if (post.status === PostStatus.Published) {
             replyMarkup = undefined
-            successMessage = 'Пост уже был опубликован'
+            replyMessage = 'Пост уже был опубликован'
           } else if (payload.event === 'moderate') {
             post.status = PostStatus.Moderating
             await this.postRepository.persist(post)
           } else if (payload.event === 'publish') {
-            await this.publishInChannelService.publish(post)
-            replyMarkup = undefined
-            successMessage = 'Пост опубликован'
+            try {
+              await this.publishInChannelService.publish(post)
+              replyMarkup = undefined
+              replyMessage = 'Пост опубликован'
+            } catch (error) {
+              this.logger.warn(error)
+              replyMarkup = false
+              replyMessage = `Не удалось опубликовать пост. Убедитесь, что бот был добавлен, как администратор в канал\n\n⚠️ ${error}`
+            }
           } else if (payload.event === 'schedule') {
             await this.schedulePostService.schedule(post)
-            successMessage = 'Пост отправлен в расписание на публикацию'
+            replyMessage = 'Пост отправлен в расписание на публикацию'
           } else if (payload.event === 'skip') {
             await this.skipPostService.skip(post)
-            successMessage = 'Пост исключён из расписания на публикацию'
+            replyMessage = 'Пост исключён из расписания на публикацию'
           }
 
-          if (replyMarkup !== undefined) {
+          if (replyMarkup !== undefined && replyMarkup !== false) {
             replyMarkup = this.sendToModerationService.getReplyMarkup(post)
           }
 
-          await this.bot.editMessageReplyMarkup(replyMarkup, {
-            chat_id: data.message.chat.id,
-            message_id: data.message.message_id,
-          })
+          if (replyMarkup !== false) {
+            await this.bot.editMessageReplyMarkup(replyMarkup, {
+              chat_id: data.message.chat.id,
+              message_id: data.message.message_id,
+            })
+          }
 
-          if (successMessage !== undefined) {
-            await sendMessageToTelegram(data.from.id, successMessage)
+          if (replyMessage !== undefined) {
+            await sendMessageToTelegram(data.from.id, replyMessage)
           }
         }
       } catch (error) {
@@ -237,6 +245,9 @@ export class TelegramService implements OnModuleInit {
         if (message.text === '/queue') {
           const posts = await this.postRepository.findAllScheduled()
 
+          if (posts.length === 0) {
+            await sendMessageToTelegram(message.chat.id, 'Очередь пуста')
+          }
           for (const post of posts) {
             await sendMessageToTelegram(message.chat.id, post.content, {
               reply_markup: this.sendToModerationService.getReplyMarkup(post),

@@ -11,9 +11,9 @@ export class PublishInChannelService {
   ) { }
 
   async publish(post: Post): Promise<void> {
+    await sendMessageToChannel(post.content)
     post.status = PostStatus.Published
     await this.postRepository.persist(post)
-    await sendMessageToChannel(post.content)
     this.logger.log('Post has been published')
   }
 }

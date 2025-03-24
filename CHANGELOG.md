@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-03-24
+
+### Changed
+
+- /queue command: add message for empty queue
+
+### Fixed
+
+- bug with marking post as published on telegram api error
+
 ## [1.1.0] - 2024-11-22
 ### Added
 - /queue command
