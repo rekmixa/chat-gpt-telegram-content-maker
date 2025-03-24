@@ -7,6 +7,7 @@
 ### Changed
 
 - /queue command: add message for empty queue
+- gpt model moved into .env
 
 ### Fixed
 
