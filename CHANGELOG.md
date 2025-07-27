@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+# [1.2.2] - 2025-07-27
+### Added
+- passing "markdown" parse mode on send message
+
 ## [1.2.1] - 2025-03-24
 
 ### Added

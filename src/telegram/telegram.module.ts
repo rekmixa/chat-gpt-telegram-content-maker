@@ -15,7 +15,10 @@ export async function sendMessageToTelegram(chatId: string, content: string, req
 
   for (let i = tries; i > 0; i--) {
     try {
-      await client.sendMessage(chatId, content, request)
+      await client.sendMessage(chatId, content, {
+        parse_mode: 'markdown',
+        ...(request ?? {}),
+      })
       break
     } catch (error) {
       if (i === 1) {
