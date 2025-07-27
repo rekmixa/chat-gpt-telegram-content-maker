@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+# [1.2.3] - 2025-07-27
+### Added
+- /show_last_10 command
+
 # [1.2.2] - 2025-07-27
 ### Added
 - passing "markdown" parse mode on send message

@@ -273,6 +273,19 @@ export class TelegramService implements OnModuleInit {
           }
         }
 
+        if (message.text === '/show_last_10') {
+          const posts = await this.postRepository.findAllLast(10)
+
+          if (posts.length === 0) {
+            await sendMessageToTelegram(message.chat.id, 'Нет опубликованных постов')
+          }
+          for (const post of posts.reverse()) {
+            await sendMessageToTelegram(message.chat.id, post.content, {
+              reply_markup: this.sendToModerationService.getReplyMarkup(post),
+            })
+          }
+        }
+
         if (message.text === '/prompts') {
           const prompts = await this.promptRepository.findAllActive()
 
@@ -437,6 +450,10 @@ export class TelegramService implements OnModuleInit {
       {
         command: 'queue',
         description: 'Показать очередь на публикацию',
+      },
+      {
+        command: 'show_last_10',
+        description: 'Показать 10 последних постов',
       },
       {
         command: 'prompts',

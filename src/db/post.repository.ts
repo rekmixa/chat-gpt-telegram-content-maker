@@ -71,6 +71,16 @@ export class PostRepository {
       .returning('*')
   }
 
+  async findAllLast(limit: number): Promise<Post[]> {
+    return this.knex
+      .from<Post>(this.tableName)
+      .select('*')
+      .where('status', PostStatus.Published)
+      .orderBy('id', 'desc')
+      .limit(limit)
+      .returning('*')
+  }
+
   async persist(post: Post): Promise<Post> {
     let result: Post[]
     if (post.id !== undefined) {
