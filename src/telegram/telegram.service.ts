@@ -267,6 +267,7 @@ export class TelegramService implements OnModuleInit {
             await sendMessageToTelegram(message.chat.id, 'Очередь пуста')
           }
           for (const post of posts) {
+            this.logger.log(`Sending post ${post.id} from queue...`)
             await sendMessageToTelegram(message.chat.id, post.content, {
               reply_markup: this.sendToModerationService.getReplyMarkup(post),
             })

@@ -83,9 +83,9 @@ export class TasksService {
     }
 
     this.logger.debug('Publishind scheduled post')
+    const post = await this.postRepository.findOldestScheduled()
 
     try {
-      const post = await this.postRepository.findOldestScheduled()
       if (post === null) {
         this.logger.warn('No post to publish')
         await sendMessageToAdmin('No post to publish')
@@ -93,7 +93,7 @@ export class TasksService {
         await this.publishInChannelService.publish(post)
       }
     } catch (error) {
-      this.logger.error('Error publishing post', error)
+      this.logger.error(`Error publishing post ${post.id}`, error)
     }
   }
 }
