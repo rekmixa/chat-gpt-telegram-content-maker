@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.2.4] - 2025-08-14
+### Fixed
+- Sending messages to telegram: disable markdown parse mode
+
 # [1.2.3] - 2025-07-27
 ### Added
 - /show_last_10 command
